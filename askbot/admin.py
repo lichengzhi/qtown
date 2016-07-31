@@ -69,3 +69,9 @@ admin.site.register(models.Award, AwardAdmin)
 admin.site.register(models.Repute, ReputeAdmin)
 admin.site.register(models.Activity, ActivityAdmin)
 admin.site.register(models.BulkTagSubscription)
+
+class UserProfileAdmin(admin.ModelAdmin):
+    list_display = ('auth_user_ptr',)
+
+
+admin.site.register(models.UserProfile, UserProfileAdmin)

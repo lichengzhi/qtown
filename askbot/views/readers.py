@@ -448,6 +448,11 @@ def question(request, id):#refactor - long subroutine. display question body, an
         request.user.message_set.create(message = unicode(error))
         return HttpResponseRedirect(reverse('index'))
 
+    print request.path
+    print request.path.split('/')[-1]
+    
+
+
     #redirect if slug in the url is wrong
     if request.path.split('/')[-2] != question_post.slug:
         logging.debug('no slug match!')
@@ -465,7 +470,10 @@ def question(request, id):#refactor - long subroutine. display question body, an
     #in the case if the permalinked items or their parents are gone - redirect
     #redirect also happens if id of the object's origin post != requested id
     show_post = None #used for permalinks
+    print show_comment
+    print show_answer
     if show_comment:
+        print "show_comment"
         #if url calls for display of a specific comment,
         #check that comment exists, that it belongs to
         #the current question
@@ -514,7 +522,18 @@ def question(request, id):#refactor - long subroutine. display question body, an
             return HttpResponseRedirect(reverse('question', kwargs = {'id': id}))
 
     thread = question_post.thread
-
+    #----------------------------------------------------------------------
+    #added by CL
+    if request.path.split('/')[-1] == "coasker":
+        print "grant permission"
+        thread.co_askers.add(request.user)
+        thread.award = thread.award + 10 #FIXME change 10 to a predefined constant
+        thread.save()
+        request.user.askbot_profile.gold_coin = request.user.askbot_profile.gold_coin - 10; #FIXME 
+       
+        request.user.askbot_profile.save()
+       
+    #-----------------------------------------------------------------------
     if askbot.get_lang_mode() == 'url-lang':
         request_lang = translation.get_language()
         if request_lang != thread.language_code:
@@ -671,6 +690,9 @@ def question(request, id):#refactor - long subroutine. display question body, an
 
     extra = context.get_extra('ASKBOT_QUESTION_PAGE_EXTRA_CONTEXT', request, data)
     data.update(extra)
+    if hasattr(request.user, "askbot_profile"):
+        if request.user.askbot_profile.gold_coin < 10:
+            request.user.message_set.create(message = "you don't have enough gold to co-ask this question!")
 
     return render(request, 'question.html', data)
     #print 'generated in ', timezone.now() - before

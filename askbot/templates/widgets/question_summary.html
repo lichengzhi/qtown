@@ -12,6 +12,12 @@
             {% trans cnt=thread.view_count %}view{% pluralize %}views{% endtrans %}
             </div>
         </div>
+        <div class="views">
+             <span class="item-count">{{ thread.award|humanize_counter }}</span>
+            <div>
+            gold
+            </div>
+        </div>
         {% set answer_count = thread.get_answer_count(visitor) %}
         <div class="answers
                 {% if answer_count == 0 -%}
@@ -41,6 +47,7 @@
             {% trans cnt=question.score %}vote{% pluralize %}votes{% endtrans %}
             </div>
         </div>
+      
         <div class="clearfix"></div>
         <div class="userinfo">
             {{ timeago(thread.last_activity_at) }}
@@ -57,4 +64,5 @@
     </div>
     <h2><a href="{{ question.get_absolute_url(thread=thread) }}">{{thread.get_title()|escape}}</a></h2>
     {{ tag_list_widget(thread.get_tag_names(), search_state=search_state) }}
+  
 </div>

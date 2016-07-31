@@ -21,6 +21,10 @@
     >
         <a class="question-flag">{% trans %}flag offensive{% endtrans %}</a>
     </span>
+    <span title="{% trans %}pay 10 gold to check the answers{% endtrans %}" >
+        <a class="question-flag" href="javascript: var message = 'Are u sure you want to pay '+{{ thread.award}}+' gold?'; if(confirm(message)) location='/question/10/xi-tong-ce-shi-kan-kan-xing-bu-xing-a/'">{% trans %}co-ask{% endtrans %}</a>
+        <a class="question-flag" href="javascript: var message = 'Are u sure you want to pay '+{{ thread.award}}+' gold?'; if(confirm(message)) location='{{ question.get_absolute_url(thread=thread) }}coasker'">{% trans %}co-ask{% endtrans %}</a>
+    </span>
 {% endif %}
 {% if thread.closed %}
     <a class="question-close" href="{% url reopen question.id %}">{% trans %}reopen{% endtrans %}</a>

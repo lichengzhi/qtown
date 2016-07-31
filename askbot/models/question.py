@@ -646,6 +646,12 @@ class Thread(models.Model):
     last_activity_at = models.DateTimeField(default=timezone.now)
     last_activity_by = models.ForeignKey(User, related_name='unused_last_active_in_threads')
     language_code = LanguageCodeField()
+    #---------------added by CL------------------------------------------------
+    #this is the award given to answers; also the price given to the article authors 
+    award = models.PositiveIntegerField(default=0)
+    co_askers   = models.ManyToManyField(User, related_name='co_askers')
+    is_free = models.BooleanField(default=True, db_index=True)
+    #--------------------------------------------------------------------------
 
     #todo: these two are redundant (we used to have a "star" and "subscribe"
     #now merged into "followed")
@@ -893,7 +899,6 @@ class Thread(models.Model):
         qset.update(view_count=models.F('view_count') + increment)
         # get the new view_count back because other pieces of code relies on such behaviour
         self.view_count = qset.values('view_count')[0]['view_count']
-
         ####################################################################
         self.invalidate_cached_summary_html()
         if django_settings.CELERY_ALWAYS_EAGER == False:
@@ -1242,7 +1247,7 @@ class Thread(models.Model):
         key = self.get_post_data_cache_key(sort_method)
         post_data = cache.cache.get(key)
         if not post_data:
-            post_data = self.get_post_data(sort_method)
+            post_data = self.get_post_data(sort_method=sort_method, user=user)
             cache.cache.set(key, post_data, const.LONG_TIME)
         return post_data
 
@@ -1263,6 +1268,7 @@ class Thread(models.Model):
         all (both posts and the comments sorted in the correct
         order)
         """
+        print "get post data"
         sort_method = sort_method or askbot_settings.DEFAULT_ANSWER_SORT_METHOD
 
         thread_posts = self.posts.all()
@@ -1298,6 +1304,10 @@ class Thread(models.Model):
         comment_map = dict()
         post_to_author = dict()
         question_post = None
+        #-------------------------------------------------------
+        is_co_asker = self.co_askers.filter(id=user.id).exists()
+        print is_co_asker
+        #-------------------------------------------------------
         for post in thread_posts:
 
             #precache some revision data
@@ -1311,12 +1321,15 @@ class Thread(models.Model):
                 continue
             if post.is_approved() is False:#hide posts on the moderation queue
                 continue
-
+            
             post_to_author[post.id] = post.author_id
-
-            if post.post_type == 'answer':
-                answers.append(post)
-                post_map[post.id] = post
+            #-----------------------------------------------------------
+            #added by CL
+            if post.post_type == 'answer' :
+               if  not user.is_anonymous() :
+                   if is_co_asker or post.author_id==user.id or user.is_administrator_or_moderator(): 
+                      answers.append(post)
+                      post_map[post.id] = post
             elif post.post_type == 'comment':
                 if post.parent_id not in comment_map:
                     comment_map[post.parent_id] = list()
@@ -1829,6 +1842,7 @@ class Thread(models.Model):
         from askbot.views.context import get_extra as get_extra_context
         context.update(get_extra_context('ASKBOT_QUESTION_SUMMARY_EXTRA_CONTEXT', None, context))
         template = get_template('widgets/question_summary.html')
+        print "questions_summary is called"
         html = template.render(Context(context))
         # INFO: Timeout is set to 30 days:
         # * timeout=0/None is not a reliable cross-backend way to set infinite timeout

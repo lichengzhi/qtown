@@ -429,7 +429,7 @@ def get_post_renderer_type(post_type):
 
 class Post(models.Model):
     post_type = models.CharField(max_length=255, db_index=True)
-
+ 
     #NOTE!!! if these fields are deleted - then jive import needs fixing!!!
     old_question_id = models.PositiveIntegerField(null=True, blank=True, default=None, unique=True)
     old_answer_id = models.PositiveIntegerField(null=True, blank=True, default=None, unique=True)
@@ -1810,6 +1810,7 @@ class Post(models.Model):
 
     def _answer__assert_is_visible_to(self, user):
         """raises QuestionHidden or AnswerHidden"""
+        print "answer is visible"
         try:
             self.thread._question_post().assert_is_visible_to(user)
         except exceptions.QuestionHidden:
@@ -1822,6 +1823,9 @@ class Post(models.Model):
             try:
                 user.assert_can_see_deleted_post(self)
             except django_exceptions.PermissionDenied:
+                raise exceptions.AnswerHidden(message)
+        if user.is_anonymous():
+                message = _('Sorry, this content is no longer available')
                 raise exceptions.AnswerHidden(message)
 
     def _comment__assert_is_visible_to(self, user):
@@ -1863,8 +1867,10 @@ class Post(models.Model):
         if self.is_comment() == False and askbot_settings.GROUPS_ENABLED:
             self.assert_is_visible_to_user_groups(user)
         if self.is_question():
+            print "this is a question"
             return self._question__assert_is_visible_to(user)
         elif self.is_answer():
+            print "this is an answer"
             return self._answer__assert_is_visible_to(user)
         elif self.is_comment():
             return self._comment__assert_is_visible_to(user)
